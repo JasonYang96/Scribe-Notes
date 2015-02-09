@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link href="styles.css" rel="stylesheet">
+  <title>Lecture 8: Consistency; Critical Sections</title>
+  <meta charset="utf-8">
+  <style>
+  table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+th, td {
+	padding: 5px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Scribe Notes for Lecture 8: Consistency; Critical Sections</h1>
+
+<h4>By: Jason Yang, Nick Ma, Harrison Chang</h4>
+<p><b>From Last Lecture:</b> SJF, FCFS required us to wait for the job to finish. We can use a preemptive scheduler that allows us to stop our current job to do another job.</p>
+
+<p><b>This Lecture: Preemption</b> is the breaking of long jobs into series of shorter jobs.
+Let us apply preemption to our scheduling policy by introducing a new policy called <q>Round Robin</q>.</p>
+
+<h3>Round Robin</h3>
+
+<table>
+	<caption>Round Robin Scheduling</caption>
+	<tr>
+		<th>Job</th>
+		<th>Arrival</th>
+		<th>Length</th>
+		<th>Wait</th>
+	</tr>
+	<tr>
+		<td>A</td>
+		<td>0</td>
+		<td>5</td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td>B</td>
+		<td>1</td>
+		<td>2</td>
+		<td>d</td>
+	</tr>
+	<tr>
+		<td>C</td>
+		<td>2</td>
+		<td>9</td>
+		<td>2d</td>
+	</tr>
+	<tr>
+		<td>D</td>
+		<td>3</td>
+		<td>4</td>
+		<td>3d</td>
+	</tr>
+</table>
+<br>
+<table>
+	<caption> Resulting Job Scheduling</caption>
+	<tr>
+		<th>Time</th>
+		<th>0</th>
+		<th>1</th>
+		<th>2</th>
+		<th>3</th>
+		<th>4</th>
+		<th>5</th>
+		<th>6</th>
+		<th>7</th>
+		<th>8</th>
+		<th>9</th>
+		<th>10</th>
+		<th>11</th>
+		<th>12</th>
+		<th>13</th>
+		<th>14</th>
+		<th>15</th>
+		<th>16</th>
+		<th>17</th>
+		<th>18</th>
+		<th>19</th>
+	</tr>
+	<tr>
+		<th>Job</th>
+		<th>A</th>
+		<th>B</th>
+		<th>C</th>
+		<th>D</th>
+		<th>A</th>
+		<th>B</th>
+		<th>C</th>
+		<th>D</th>
+		<th>A</th>
+		<th>C</th>
+		<th>D</th>
+		<th>A</th>
+		<th>C</th>
+		<th>D</th>
+		<th>A</th>
+		<th>C</th>
+		<th>C</th>
+		<th>C</th>
+		<th>C</th>
+		<th>C</th>
+	</tr>
+</table>
+<br>
+<p><b>Upside:</b> Average wait time = 1.5d</p>
+<p><b>Downside:</b> Spending more CPU time doing context switches, leading to lower throughput and utilization.<p>
+
+<p>This version of Round Robin also seems a little unfair. Newer processes go to the head of the run queue and can starve old processes. What about fair Round Robin? Newer processes can go to the tail of the run queue instead and will not starve old processes. </p>
+
+<h3>Priority Scheduling</h3>
+<p>There are two kinds of priorities:</p>
+<ul style="list-style-type:square">
+	<li><b>External:</b> determined by users</li>
+	<li><b>Internal:</b> determined by the scheduler</li>
+</ul>
+<p>For example, SJF (determines priority by length of jobs) and FCFS (determines priority by arrival time) are internal priority schedulers.</p>
+<p>We need something more fair! How about <q>Eggert scheduling</q>? With Eggert scheduling, the priority can be determined by the length of the job and the arrival time. (NOTE: a lower priority number indicates higher priority) </p>
+
+<p>
+For example, if we run this code in bash: 
+<code>
+$ps -f -p ...
+</code> <br>
+We can find information about the <b>PRIO</b> and <b>NICE</b> of the file, where <b>PRIO</b> represents the internal and external priority and <b>NICE</b> represents the external priorities set by the user.</p> 
+
+<p>The nice number is the user-set priority and denotes how nice a program is; it can be negative or positive. The default nice number for all processes is 0. You can set the nice number and even nice make, but only root can reduce a programs niceness. </p>
+
+<b>Problems:</b><br>
+	<ul style="list-style-type:square">
+		<li>Preemptive Scheduling</li>
+		<li>Threads (can lose CPU at any time)</li>
+	</ul>
+<p>This leads us to synchronization. <b>Synchronization</b> is the coordination of actions in a shared address space. We want to avoid race conditions when behavior depends on the execution of different threads.</p>
+
+<h3>Synchronization and Preventing Race Conditions</h3>
+<ul style="list-style-type:square">
+	<li>Sequence coordination (A;B): insist on a particular order (e.g. execute in one thread, waitpid in the other)</li>
+	<li>Isolation: A and B never access the same objects</li>
+	<li>Atomicity: arrange for A to be executed all before B OR all after B: A;B or B;A.</li>
+</ul>
+
+<h3>Atomicity</h3>
+<table>
+	<tr>
+		<td>Thread 1</td>
+		<td>AAAAAAAAAA</td>
+		<td>NO JOB</td>
+	</tr>
+	<tr>
+		<td>Thread 2</td>
+		<td>WAITING FOR A</td>
+		<td>BBBBBB</td>
+	</tr>
+</table>
+<br>
+<p> Atomic actions need to be small or indivisible. Small atomic actions are easier to implement, and if they are small enough, the hardware itself can execute them. This leads to better and more fair performance.</p>
+
+<p><b>How to <q>Cheat</q> in Implementing Atomic Actions</b></p>
+<p>Assume we have a bank and it does three functions:</p>
+<table>
+	<tr>
+		<th>Job</th>
+		<th>Description</th>
+		<th>Thread #</th>
+	</tr>
+	<tr>
+		<td>A</td>
+		<td>Deposit ($10)</td>
+		<td>Thread 1</td>
+	</tr>
+	<tr>
+		<td>B</td>
+		<td>Withdraw ($15)</td>
+		<td>Thread 2</td>
+	</tr>
+	<tr>
+		<td>C</td>
+		<td>Check</td>
+		<td>Thread 3</td>
+	</tr>
+</table>
+<br>
+<p>
+Initial balance: $100<br>
+Thread 1 does A<br>
+Thread 2 does B<br>
+Thread 3 does C<br>
+Final balance: $95
+</p>
+
+<p>But what if we were to look in between threads 1 and 2 and saw that the bank balance was $85? In other words, what if the bank is withdrawing money before depositing it, even though we had ordered it to deposit first?<p>
+
+<p>The truth is, it does not matter. This sort of internal bug is allowed as long as the external behavior is valid. This is the principle of serializability, which is a special case of observability, where we only look at the API for results.</p>
+
+<b>API</b><br>
+<pre><code>long long balance;
+bool deposit(long long pennies) {
+if (pennies &lt; 0 || pennies > LONGMAX - balance)
+return 0;
+balance += pennies;
+return true;
+}
+bool withdraw(long long pennies) {
+if (pennies &lt; 0 || pennies > balance)
+	return 0;
+balance -= pennies;
+return true;
+}</code></pre>
+<p>A problem can arise when some other thread deposits or withdraws just before balance is modified by these functions.</p>
+<p>A possible solution:</p>
+<pre><code>bool withdraw(long long pennies) {
+	long long b = balance;
+	if (!(0 &lt;= pennies &amp;&amp; pennies &lt;= LONGMAX - b))
+		return 0;
+	balance = b - pennies;
+	return true;
+}</code></pre>
+<p>However, this also presents another problem. We may be nullifying a deposit that another thread could have done just before this new withdraw modifies the balance.
+This brings us to the topic of <b>critical sections</b>.</p>
+
+<h3>Critical Sections</h3>
+<p>A critical section is a set of instructions such that while an instruction pointer is executing that set, no other instruction pointer is pointing at a critical section for the same object.</p>
+<p>This supports mutual exclusion and bounded wait. The mutual exclusion provides safety against race conditions, and the bounded waiting provides fairness for processes. However, there is a conflict of interest here; to provide mutual exclusion, we want to enlarge critical sections, but to provide bounded waits, we want to shrink critical sections. This leads us to the Goldilocks principle: we want large critical sections, but no larger than it has to be.</p>
+
+<p>Ex: implementing pipes in threads</p>
+<pre><code>#define PIPE_SIZE (1&lt;&lt;12)
+struct pipe {
+	char buf[PIPE_SIZE];
+	unsigned r, w;
+};
+char readc(struct pipe *p) {
+	while(p->r == p->w)
+		continue;
+	return p->buf[p->r++%PIPE_SIZE];
+}
+void writec(struct pipe *p) {
+	while(p->w - p->r == PIPE_SIZE)
+		continue;
+	p->buf[p->w++%PIPE_SIZE] = c;
+}</code></pre>
+
+<p>This code may cause a problem when we want one thread reads at the same time another thread has incremented the write pointer but has not actually written yet. Let us create a lock that can help us define critical sections and prevent this race condition.</p>
+
+<pre><code>lock_t l;
+void lock(lock_t*); 
+	//this function can busywait while another thread owns the lock
+	//we call this type of lock a spin lock
+	//pre-condition for this function: this thread does not own the lock
+	//post-condition for this function: this thread owns the lock
+void unlock(lock_t*); 
+	//unlock does not ever have to wait
+	//the reverse of lock();
+char readc(struct pipe *p) {
+	lock(&amp;l);
+	while(p->r == p->w)
+		continue;
+	unlock(&amp;l);
+	return p->buf[p->r++%PIPE_SIZE];
+}
+void writec(struct pipe *p) {
+	lock(&amp;l);
+	while(p->w - p->r == PIPE_SIZE)
+		continue;
+	p->buf[p->w++%PIPE_SIZE] = c;
+	unlock(&amp;l);
+}</code></pre>
+
+<p>There is a problem here though; this placement of locks can cause infinite looping when read waits for something to be written and write waits for something to be read.</p>
+
+<pre><code>char readc(struct pipe *p) {
+	lock(&amp;l);
+	while(p->r == p->w) {
+		unlock(&amp;l);
+		lock(&amp;l);
+	}
+	char c = p->buf[p->r++%PIPE_SIZE];
+	unlock(&amp;l);
+	return c;
+}</code></pre>
+
+<p>There is yet another problem here; we have heavy spinning within the while loop, taking up time as the CPU is passed between threads. Is there another solution which does not spin so much? We could implement two kinds of locks: one for reading and one for writing. The second problem is that the lock is too coarse-grained. It excludes accesses that are not really a problem.</p>
+<p>Say we have the following:<br>
+	A | B 	(pipe P)<br>
+	C | D 	(pipe Q)</p>
+<p>When A writes to pipe P, our global lock will also lock pipe Q. This prevents C and D from using their pipe. The solution to this is a finer-grained lock.</p>
+
+<pre><code>struct pipe {
+	lock_t l;
+	char buf[PIPE_SIZE];
+	unsigned r, w;
+};</code></pre>
+
+<p>But can a lock be too finely grained? Let us look at the following example:</p>
+
+<pre><code>bool isempty(struct pipe *p) {
+	lock(&amp;p->l);
+	bool ise = p->r == p->w;
+	unlock(&amp;p->l);
+	return ise;
+}</code></pre>
+
+<p>This is still too slow, we will find out why next lecture!</p>
+
+</div>
+</body>
+</html>
